@@ -1,56 +1,45 @@
+---
+name: russian-title-optimizer
+description: Batch-optimize Russian ecommerce product titles from Excel files for marketplaces such as Ozon and Wildberries. Use when the user provides a spreadsheet of raw Russian, mixed-language, mistranslated, duplicated, or messy product titles and wants a formatted .xlsx output with original titles, compliant concise standard titles, and longer traffic-oriented titles.
+---
 
+# Russian Title Optimizer
 
-\### 3. ./SKILL.md
+Optimize raw ecommerce product titles in `Sheet1` column A of an Excel workbook.
 
-```markdown
+## Output Contract
 
-\# Skill Name: russian-title-optimizer 俄语电商标题批量优化器
+- Preserve every source row exactly: row order, duplicates, blank rows, and invalid rows must not be skipped.
+- Output a downloadable `.xlsx` with three columns:
+  1. `Исходное название`
+  2. `Стандартный заголовок`
+  3. `Рекламный заголовок`
+- Format the output workbook with a blue header row, bold white header text, thin borders, frozen first row, wrapped text, suitable column widths, and pure white content rows. Do not use zebra striping.
+- For blank source rows, leave both optimized title columns blank.
+- For repeated source titles, reuse the same optimized pair consistently.
 
-\## 1. 核心定位
+## Core Workflow
 
-批量处理Excel内俄语Ozon/Wildberries商品标题，输入含原始标题的Excel，输出三列美化Excel文件：原始标题、精简标准版标题、引流加长版标题；适配家居、汽配、厨卫、光伏、卫浴、收纳、园林、小家电配件全品类。
+1. Read all values from `Sheet1` column A.
+2. Read `references/optimization-rules.md` before generating titles.
+3. Clean each nonblank title into a concise compliant Russian standard title.
+4. Create a longer promotional title only from objective product attributes: product type, material, size/model, use case, compatibility, set quantity, and included accessories.
+5. Generate the formatted workbook with `scripts/process_excel.py` or equivalent logic.
+6. Verify the output opens and that source row count, filled-row count, blank-row count, and optimized-row count match expectations.
 
+## Title Policy
 
+- Prefer objective, marketplace-safe Russian. Avoid exaggerated claims, sales language, brand/original-factory claims, and unsupported compatibility.
+- Remove repeated nouns, mixed-language fragments, translation artifacts, meaningless words, raw commands, and irrelevant scenario stuffing.
+- Normalize Russian grammar, word order, case endings, capitalization, units, and product terminology.
+- Preserve concrete product facts: material, shape, size, quantity, model numbers, compatible equipment, intended use, and included accessories.
+- Keep brand/model identifiers only when they appear to be neutral compatibility or part numbers. Remove or soften identifiers that look like infringement-prone brand promotion.
+- If a row is only a verb, generic noun, model numbers without product class,乱码, or otherwise has no recoverable product meaning, mark it as invalid and not suitable for listing:
+  - Standard: `Недействительный товарный заголовок`
+  - Promotional: `Нельзя использовать для размещения: требуется реальное наименование товара`
 
-\## 2. 硬性执行规则（不可修改）
+## Standard Vs Promotional Titles
 
-1\. 行顺序完全保留，重复标题、空行、无效文本全部保留不跳过；
-
-2\. Excel开启美化：表头蓝底白字加粗、全区域细边框、首行冻结、自动换行、自适应列宽；无隔行斑马纹颜色，所有内容行底色纯白；
-
-3\. 输出文件必须为可下载.xlsx，禁止仅文字展示结果；
-
-4\. 所有俄语标题统一修正语法、删除重复名词、规范行业专业术语、修正中式俄语错误词汇；
-
-5\. 区分两类输出标题：
-
-&#x20;  - 精简标准版：核心关键词前置，简短适配平台搜索权重；
-
-&#x20;  - 引流加长版：补充材质、适用场景、适配型号、卖点，提升曝光转化。
-
-
-
-\## 3. 完整工作流程
-
-1\. 读取上传Excel Sheet1第一列全部文本，逐行提取原始标题；
-
-2\. 依据《references/optimization-rules.md》规则逐行优化生成两套标题；
-
-3\. 新建输出表格三列：A原始标题 / B精简标准版 / C引流加长版；
-
-4\. 执行Excel美化格式（无隔行色彩）；
-
-5\. 导出可下载.xlsx文件交付用户。
-
-
-
-\## 4. 异常处理规则
-
-1\. 文本为动词/无商品含义（如Просматривать）：精简版填`Неопределенный товар`，引流版标注`Ошибка исходного названия, требуется уточнить наименование товара`；
-
-2\. 明显用词错误（如плесень代指模具）：自动替换行业标准词汇；
-
-3\. 全大写标题：统一转为标准大小写，仅专业设备型号保留大写；
-
-4\. 大量重复堆砌词汇：去冗余，只保留1次核心名词。
-
+- Standard title: short, search-weighted, product-first. Pattern: `Product + key attribute/use`.
+- Promotional title: longer but still factual. Pattern: `Product + material/spec/model + use case/compatibility + objective benefit/accessory`.
+- Do not invent capabilities. If the source is ambiguous, write a conservative category title or fallback.

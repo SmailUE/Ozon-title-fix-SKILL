@@ -1,50 +1,40 @@
-\# russian-title-optimizer
+# russian-title-optimizer
 
-Ozon/Wildberries 俄语电商商品标题批量优化工具 | AI专用处理Skill
+Codex skill for batch-optimizing Russian ecommerce product titles for marketplaces such as Ozon and Wildberries.
 
+## What It Does
 
+- Reads raw product titles from `Sheet1` column A in an Excel workbook.
+- Preserves every source row, including duplicates, blank rows, and invalid rows.
+- Produces a formatted `.xlsx` output with:
+  - `Исходное название`
+  - `Стандартный заголовок`
+  - `Рекламный заголовок`
+- Cleans all-uppercase text, duplicated words, broken spacing, mixed Russian/English/Chinese fragments, and obvious translation artifacts.
+- Removes unsafe marketplace wording such as marketing exaggeration, unsupported original/factory/genuine claims, instruction verbs, and irrelevant false functions.
+- Marks unrecoverable fragments, generic nouns, and verb-only rows as invalid titles that should not be listed.
 
-\## 项目简介
+## Rule Sources
 
-专为跨境电商俄语站打造的标题批量优化方案，支持Excel批量导入商品俄语标题，自动生成两套标题：
+The current rules were updated from:
 
-1\. Стандартный заголовок 精简标准版（平台搜索权重优先）
+- `俄语电商商品标题合规优化全集（AI训练结构化案例）.docx`
+- `russian_title_compliance.csv`
 
-2\. Рекламный заголовок 引流加长版（营销卖点+场景补充）
+The extracted guidance is written into `references/optimization-rules.md`, so the skill does not depend on those original training files after installation.
 
-输出带美化格式的.xlsx文件，适配AI批量自动处理。
+## File Structure
 
+- `SKILL.md`: Codex execution workflow and output contract.
+- `references/optimization-rules.md`: Detailed compliance rules, invalid-title policy, category guidance, and examples.
+- `scripts/process_excel.py`: Excel output generation and formatting helper.
+- `LICENSE`: MIT license.
 
+## Invalid Title Fallback
 
-\## 核心特性
+When a row has no recoverable product meaning, use:
 
-1\. 完整保留原始行顺序，重复标题、空行、无效文本全部保留不删除
+- Standard title: `Недействительный товарный заголовок`
+- Promotional title: `Нельзя использовать для размещения: требуется реальное наименование товара`
 
-2\. Excel美化规范：表头蓝底白字加粗、全边框、首行冻结、自动换行；无隔行斑马色
-
-3\. 内置全品类俄语标准化术语库，自动修正中式俄语、重复词汇、拼写错误
-
-4\. 自动清洗全大写乱码标题、错误行业用词替换（плесень → форма）
-
-5\. 覆盖品类：厨卫、卫浴五金、收纳家居、汽配园林、光伏、通风电工、扫地机配件
-
-
-
-\## 目录说明
-
-\- `SKILL.md`：AI执行标准流程、硬性约束规则（Codex读取入口）
-
-\- `references/optimization-rules.md`：完整优化规则、词汇黑名单、标题模板、实战案例库
-
-\- `scripts/process\_excel.py`：Python脚本，Excel读取、格式美化、二进制文件导出
-
-\- `LICENSE`：MIT开源协议，可商用、二次分发
-
-
-
-\## 依赖安装
-
-```bash
-
-pip install openpyxl
-
+Blank source rows stay blank.
