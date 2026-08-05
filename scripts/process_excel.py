@@ -1,80 +1,96 @@
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
-import io
+from __future__ import annotations
 
-# Excel全局美化配置（无隔行斑马颜色）
-def set_table_style(ws):
-    # 表头样式
+import io
+from pathlib import Path
+from typing import Iterable
+
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+
+HEADERS = ["Исходное название", "Стандартный заголовок", "Рекламный заголовок"]
+
+
+def set_table_style(ws) -> None:
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-    thin_border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    left_align = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    content_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    thin = Side(style="thin", color="B7B7B7")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left = Alignment(horizontal="left", vertical="top", wrap_text=True)
 
-    # 写入表头文本
-    ws["A1"] = "Исходное название"
-    ws["B1"] = "Стандартный заголовок"
-    ws["C1"] = "Рекламный заголовок"
-
-    # 表头统一格式
-    for col in ["A", "B", "C"]:
-        cell = ws[f"{col}1"]
+    for col_idx, header in enumerate(HEADERS, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
         cell.font = header_font
         cell.fill = header_fill
-        cell.border = thin_border
-        cell.alignment = center_align
+        cell.border = border
+        cell.alignment = center
 
-    # 固定列宽
-    ws.column_dimensions["A"].width = 50
-    ws.column_dimensions["B"].width = 45
-    ws.column_dimensions["C"].width = 65
+    widths = {1: 68, 2: 58, 3: 88}
+    for col_idx, width in widths.items():
+        ws.column_dimensions[chr(64 + col_idx)].width = width
+
     ws.freeze_panes = "A2"
 
-    # 内容行统一边框+左对齐
-    max_row = ws.max_row
-    for row in range(2, max_row + 1):
-        for col in range(1, 4):
-            cell = ws.cell(row=row, column=col)
-            cell.border = thin_border
-            cell.alignment = left_align
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
+        for cell in row:
+            cell.border = border
+            cell.alignment = left
+            cell.fill = content_fill
+        ws.row_dimensions[row[0].row].height = 45
 
-# 读取Excel第一列所有原始标题
-def read_source_excel(file_bytes: bytes) -> list:
+
+def read_source_excel(file_bytes: bytes, sheet_name: str = "Sheet1") -> list[str]:
     stream = io.BytesIO(file_bytes)
     wb = load_workbook(stream)
-    sheet = wb["Sheet1"]
-    title_list = []
-    for r in range(1, sheet.max_row + 1):
-        val = sheet.cell(row=r, column=1).value
-        title_list.append(str(val) if val is not None else "")
-    return title_list
+    ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb[wb.sheetnames[0]]
+    titles: list[str] = []
+    for row_idx in range(1, ws.max_row + 1):
+        value = ws.cell(row=row_idx, column=1).value
+        titles.append(str(value) if value is not None else "")
+    return titles
 
-# 生成优化后完整Excel二进制文件
-def generate_output_excel(origin_titles: list, std_titles: list, promo_titles: list) -> bytes:
+
+def generate_output_excel(
+    origin_titles: Iterable[str],
+    std_titles: Iterable[str],
+    promo_titles: Iterable[str],
+) -> bytes:
+    origins = list(origin_titles)
+    stds = list(std_titles)
+    promos = list(promo_titles)
+    if not (len(origins) == len(stds) == len(promos)):
+        raise ValueError("origin_titles, std_titles, and promo_titles must have the same length")
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Оптимизированные заголовки"
-    # 批量写入数据
-    total = len(origin_titles)
-    for idx in range(total):
-        row_num = idx + 2
-        ws.cell(row=row_num, column=1, value=origin_titles[idx])
-        ws.cell(row=row_num, column=2, value=std_titles[idx])
-        ws.cell(row=row_num, column=3, value=promo_titles[idx])
-    # 应用美化格式
+
+    for idx, (origin, standard, promo) in enumerate(zip(origins, stds, promos), start=2):
+        ws.cell(row=idx, column=1, value=origin)
+        ws.cell(row=idx, column=2, value=standard)
+        ws.cell(row=idx, column=3, value=promo)
+
     set_table_style(ws)
-    # 导出字节流
-    output_buffer = io.BytesIO()
-    wb.save(output_buffer)
-    output_buffer.seek(0)
-    return output_buffer.getvalue()
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output.getvalue()
+
+
+def save_output_excel(
+    output_path: str | Path,
+    origin_titles: Iterable[str],
+    std_titles: Iterable[str],
+    promo_titles: Iterable[str],
+) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(generate_output_excel(origin_titles, std_titles, promo_titles))
+    return path
 
 
 if __name__ == "__main__":
     print("russian-title-optimizer Excel processor loaded")
-    print("Usage: read_source_excel() load raw file, generate_output_excel() export formatted xlsx")
+    print("Use read_source_excel(), generate_output_excel(), or save_output_excel().")
